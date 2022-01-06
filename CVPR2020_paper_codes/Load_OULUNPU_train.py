@@ -48,8 +48,9 @@ seq = iaa.Sequential([
 
 def crop_face_from_scene(image,face_name_full, scale):
     f=open(face_name_full,'r')
-    lines=f.readlines()
-    y1,x1,w,h=[float(ele) for ele in lines[:4]]
+    material=f.readline().strip()
+    # y1,x1,w,h = [float(ele) for ele in lines[:4]]
+    x1,y1,w,h,score = material.strip().split(' ')
     f.close()
     y2=y1+w
     x2=x1+h
@@ -213,7 +214,12 @@ class Spoofing_train(Dataset):
 
     def __init__(self, info_list, root_dir, map_dir,  transform=None):
 
-        self.landmarks_frame = pd.read_csv(info_list, delimiter=',', header=None)
+        # self.landmarks_frame = pd.read_csv(info_list, delimiter=',', header=None)
+
+        with open(info_list) as f:
+            image_list = f.readlines().strip()
+        print("got local image list, {} image".format(len(image_list.keys())))
+        self.landmarks_frame = image_list
         self.root_dir = root_dir
         self.map_dir = map_dir
         self.transform = transform
@@ -224,11 +230,18 @@ class Spoofing_train(Dataset):
     
     def __getitem__(self, idx):
         #print(self.landmarks_frame.iloc[idx, 0])
-        videoname = str(self.landmarks_frame.iloc[idx, 1])
-        image_path = os.path.join(self.root_dir, videoname)
-        map_path = os.path.join(self.map_dir, videoname)
-             
-        image_x, map_x = self.get_single_image_x(image_path, map_path, videoname)
+        # videoname = str(self.landmarks_frame.iloc[idx, 1])
+        # image_path = os.path.join(self.root_dir, videoname)
+        # map_path = os.path.join(self.map_dir, videoname)
+
+        st = self.landmarks_frame[idx].slice(" ")
+        img_name = st[0]
+        map_name = st[0][4:] + "_depth_3DDFA_full.jpg" + st[0][:-4]
+
+        image_path = os.path.join(self.root_dir, img_name)
+        map_path = os.path.join(self.map_dir, map_name)
+
+        image_x, map_x = self.get_single_image_x(image_path, map_path)
 		    
         spoofing_label = self.landmarks_frame.iloc[idx, 0]
         if spoofing_label == 1:
@@ -244,27 +257,27 @@ class Spoofing_train(Dataset):
             sample = self.transform(sample)
         return sample
 
-    def get_single_image_x(self, image_path, map_path, videoname):
+    def get_single_image_x(self, image_path, map_path):
 
-        frames_total = len([name for name in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, name))])
+        # frames_total = len([name for name in os.listdir(map_path) if os.path.isfile(os.path.join(map_path, name))])
         
         # random choose 1 frame
-        for temp in range(500):
-            image_id = np.random.randint(1, frames_total-1)
-            
-            s = "_%03d_scene" % image_id
-            image_name = videoname + s + '.jpg'
-            bbox_name = videoname + s + '.dat'
-            bbox_path = os.path.join(image_path, bbox_name)
-            s = "_%03d_depth1D" % image_id
-            map_name = videoname + s + '.jpg'
-            map_path2 = os.path.join(map_path, map_name)
+        # for temp in range(500):
+        # image_id = np.random.randint(1, frames_total-1)
         
-            # some .dat & map files have been missing  
-            if os.path.exists(bbox_path) & os.path.exists(map_path2):
-                map_x_temp2 = cv2.imread(map_path2, 0)
-                if map_x_temp2 is not None:
-                    break
+        # s = "_%03d_scene" % image_id
+        # image_name = videoname + s + '.jpg'
+        # bbox_name = 
+        bbox_path = image_path[:-4] + '_BB.txt'
+        # s = "_%03d_depth1D" % image_id
+        # map_name = videoname + s + '.jpg'
+        # map_path2 = os.path.join(map_path, map_name)
+    
+        # some .dat & map files have been missing  
+        if os.path.exists(bbox_path) & os.path.exists(map_path):
+            map_x_temp2 = cv2.imread(map_path, 0)
+            if map_x_temp2 is not None:
+                return None, None
         
         
         # random scale from [1.2 to 1.5]
@@ -277,13 +290,13 @@ class Spoofing_train(Dataset):
  
 
         # RGB
-        image_path = os.path.join(image_path, image_name)
+        # image_path = os.path.join(image_path, image_name)
         image_x_temp = cv2.imread(image_path)
 
         # gray-map
-        map_path = os.path.join(map_path, map_name)
+        # map_path = os.path.join(map_path, map_name)
         map_x_temp = cv2.imread(map_path, 0)
-         
+        
         image_x = cv2.resize(crop_face_from_scene(image_x_temp, bbox_path, face_scale), (256, 256))
         # data augment from 'imgaug' --> Add (value=(-40,40), per_channel=True), GammaContrast (gamma=(0.5,1.5))
         image_x_aug = seq.augment_image(image_x) 

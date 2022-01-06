@@ -46,18 +46,31 @@ from utils import AvgrageMeter, accuracy, performances
 
 
 
-# Dataset root
-train_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Train_images/'        
-val_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Dev_images/'     
-test_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Test_images/'   
+# # Dataset root
+# train_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Train_images/'        
+# val_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Dev_images/'     
+# test_image_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/Test_images/'   
    
-map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUtrain_images/'   
-val_map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUdev_images/' 
-test_map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUtest_images/' 
+# map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUtrain_images/'   
+# val_map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUdev_images/' 
+# test_map_dir = '/wrk/yuzitong/DONOTREMOVE/OULU/IJCB_re/OULUtest_images/' 
 
-train_list = '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Train.txt'
-val_list = '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Dev.txt'
-test_list =  '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Test.txt'
+# train_list = '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Train.txt'
+# val_list = '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Dev.txt'
+# test_list =  '/wrk/yuzitong/DONOTREMOVE/OULU/OULU_Protocols/Protocol_1/Test.txt'
+
+# Dataset root
+train_image_dir = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/'        
+val_image_dir = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof'     
+test_image_dir = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof'   
+   
+# map_dir = ''   
+# val_map_dir = '' 
+# test_map_dir = '' 
+
+train_list = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/train_label.txt'
+val_list = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/test_label.txt'
+test_list =  '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/test_label.txt'
  
 
 
@@ -208,9 +221,9 @@ def train_test():
     
     echo_batches = args.echo_batches
 
-    print("Oulu-NPU, P1:\n ")
+    print("JioFAS, P1:\n ")
 
-    log_file.write('Oulu-NPU, P1:\n ')
+    log_file.write('JioFAS, P1:\n ')
     log_file.flush()
 
     # load the network, load the pre-trained model in UCF101?
@@ -238,8 +251,8 @@ def train_test():
 
 
         
-        #model = CDCN(basic_conv=Conv2d_cd, theta=0.7)
-	model = CDCNpp(basic_conv=Conv2d_cd, theta=0.7)
+        model = CDCN(basic_conv=Conv2d_cd, theta=0.7)
+	    # model = CDCNpp(basic_conv=Conv2d_cd, theta=0.7)
         
 
 
@@ -280,7 +293,7 @@ def train_test():
         model.train()
         
         # load random 16-frame clip data every epoch
-        train_data = Spoofing_train(train_list, train_image_dir, map_dir, transform=transforms.Compose([RandomErasing(), RandomHorizontalFlip(),  ToTensor(), Cutout(), Normaliztion()]))
+        train_data = Spoofing_train(train_list, train_image_dir, train_image_dir, transform=transforms.Compose([RandomErasing(), RandomHorizontalFlip(),  ToTensor(), Cutout(), Normaliztion()]))
         dataloader_train = DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=4)
 
         for i, sample_batched in enumerate(dataloader_train):
