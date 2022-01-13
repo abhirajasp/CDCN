@@ -243,7 +243,8 @@ class Spoofing_train(Dataset):
 
         image_x, map_x = self.get_single_image_x(image_path, map_path)
 		    
-        spoofing_label = self.landmarks_frame.iloc[idx, 0]
+        # spoofing_label = self.landmarks_frame.iloc[idx, 0]
+        spoofing_label = int(st[1])
         if spoofing_label == 1:
             spoofing_label = 1            # real
         else:

@@ -32,15 +32,16 @@ import math
 import os 
 
 
-frames_total = 8    # each video 8 uniform samples
+frames_total = 1   # each video 8 uniform samples
  
 face_scale = 1.3  #default for test and val 
 #face_scale = 1.1  #default for test and val
 
 def crop_face_from_scene(image,face_name_full, scale):
     f=open(face_name_full,'r')
-    lines=f.readlines()
-    y1,x1,w,h=[float(ele) for ele in lines[:4]]
+    material=f.readline().strip()
+    # y1,x1,w,h = [float(ele) for ele in lines[:4]]
+    x1,y1,w,h,score = material.strip().split(' ')
     f.close()
     y2=y1+w
     x2=x1+h
@@ -107,7 +108,12 @@ class Spoofing_valtest(Dataset):
 
     def __init__(self, info_list, root_dir, val_map_dir,  transform=None):
 
-        self.landmarks_frame = pd.read_csv(info_list, delimiter=',', header=None)
+        # self.landmarks_frame = pd.read_csv(info_list, delimiter=',', header=None)
+
+        with open(info_list) as f:
+            image_list = f.readlines().strip()
+        print("got local image list, {} image".format(len(image_list.keys())))
+        self.landmarks_frame = image_list
         self.root_dir = root_dir
         self.val_map_dir = val_map_dir
         self.transform = transform
@@ -118,13 +124,23 @@ class Spoofing_valtest(Dataset):
     
     def __getitem__(self, idx):
         #print(self.landmarks_frame.iloc[idx, 0])
-        videoname = str(self.landmarks_frame.iloc[idx, 1])
-        image_path = os.path.join(self.root_dir, videoname)
-        val_map_path = os.path.join(self.val_map_dir, videoname)
+        # videoname = str(self.landmarks_frame.iloc[idx, 1])
+        # image_path = os.path.join(self.root_dir, videoname)
+        # val_map_path = os.path.join(self.val_map_dir, videoname)
+        
+        st = self.landmarks_frame[idx].slice(" ")
+        img_name = st[0]
+        map_name = st[0][4:] + "_depth_3DDFA_full.jpg" + st[0][:-4]
+
+        image_path = os.path.join(self.root_dir, img_name)
+        val_map_path = os.path.join(self.val_map_dir, map_name)
+
+        image_x, val_map_x = self.get_single_image_x(image_path, val_map_path)
              
-        image_x, val_map_x = self.get_single_image_x(image_path, val_map_path, videoname)
+        # image_x, val_map_x = self.get_single_image_x(image_path, val_map_path, videoname)
 		    
-        spoofing_label = self.landmarks_frame.iloc[idx, 0]
+        # spoofing_label = self.landmarks_frame.iloc[idx, 0]
+        spoofing_label = int(st[1])
         if spoofing_label == 1:
             spoofing_label = 1            # real
         else:
@@ -136,50 +152,45 @@ class Spoofing_valtest(Dataset):
             sample = self.transform(sample)
         return sample
 
-    def get_single_image_x(self, image_path, val_map_path, videoname):
+    def get_single_image_x(self, image_path, val_map_path):
 
-        files_total = len([name for name in os.listdir(image_path) if os.path.isfile(os.path.join(image_path, name))])//3
-        interval = files_total//10
+        # files_total = len([name for name in os.listdir(image_path) if os.path.isfile(os.path.join(image_path, name))])//3
+        # interval = files_total//10
         
         image_x = np.zeros((frames_total, 256, 256, 3))
         val_map_x = np.ones((frames_total, 32, 32))
         
         # random choose 1 frame
-        for ii in range(frames_total):
-            image_id = ii*interval + 1 
+        # for ii in range(frames_total):
+            # image_id = ii*interval + 1 
             
-            for temp in range(50):
-                s = "_%03d_scene" % image_id
-                s1 = "_%03d_depth1D" % image_id
-                image_name = videoname + s + '.jpg'
-                map_name = videoname + s1 + '.jpg'
-                bbox_name = videoname + s + '.dat'
-                bbox_path = os.path.join(image_path, bbox_name)
-                val_map_path2 = os.path.join(val_map_path, map_name)
-                val_map_x_temp2 = cv2.imread(val_map_path2, 0)
-            
-                if os.path.exists(bbox_path) & os.path.exists(val_map_path2)  :    # some scene.dat are missing
-                    if val_map_x_temp2 is not None:
-                        break
-                    else:
-                        image_id +=1
-                else:
-                    image_id +=1
+            # for temp in range(50):
+                # s = "_%03d_scene" % image_id
+                # s1 = "_%03d_depth1D" % image_id
+                # image_name = videoname + s + '.jpg'
+                # map_name = videoname + s1 + '.jpg'
+                # bbox_name = videoname + s + '.dat'
+        bbox_path = image_path[:-4] + '_BB.txt'
+        # val_map_path2 = os.path.join(val_map_path, map_name)
+        val_map_x_temp2 = cv2.imread(val_map_path, 0)
+    
+        if not os.path.exists(bbox_path) or not os.path.exists(val_map_path) or val_map_x_temp2 is None :    # some scene.dat are missing
+            return None, None
                     
-            # RGB
-            image_path2 = os.path.join(image_path, image_name)
-            image_x_temp = cv2.imread(image_path2)
-            
-            
-            
-            # gray-map
-            val_map_x_temp = cv2.imread(val_map_path2, 0)
+        # RGB
+        # image_path2 = os.path.join(image_path, image_name)
+        image_x_temp = cv2.imread(image_path)
+        
+        
+        
+        # gray-map
+        val_map_x_temp = cv2.imread(val_map_path, 0)
 
-            image_x[ii,:,:,:] = cv2.resize(crop_face_from_scene(image_x_temp, bbox_path, face_scale), (256, 256))
-            # transform to binary mask --> threshold = 0 
-            temp = cv2.resize(crop_face_from_scene(val_map_x_temp, bbox_path, face_scale), (32, 32))
-            np.where(temp < 1, temp, 1)
-            val_map_x[ii,:,:] = temp
+        image_x[0,:,:,:] = cv2.resize(crop_face_from_scene(image_x_temp, bbox_path, face_scale), (256, 256))
+        # transform to binary mask --> threshold = 0 
+        temp = cv2.resize(crop_face_from_scene(val_map_x_temp, bbox_path, face_scale), (32, 32))
+        np.where(temp < 1, temp, 1)
+        val_map_x[0,:,:] = temp
             
 			
         return image_x, val_map_x

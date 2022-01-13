@@ -69,8 +69,8 @@ test_image_dir = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof'
 # test_map_dir = '' 
 
 train_list = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/train_label.txt'
-val_list = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/test_label.txt'
-test_list =  '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/test_label.txt'
+val_list = '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/val_split.txt'
+test_list =  '/frdata/CAS/CELEBA_SPOOF_DATASET/CelebA_Spoof/metas/intra_test/test_split.txt'
  
 
 
@@ -442,7 +442,7 @@ def train_test():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="save quality using landmarkpose model")
-    parser.add_argument('--gpu', type=int, default=3, help='the gpu id used for predict')
+    parser.add_argument('--gpu', type=int, default=0, help='the gpu id used for predict')
     parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate')  
     parser.add_argument('--batchsize', type=int, default=7, help='initial batchsize')  
     parser.add_argument('--step_size', type=int, default=500, help='how many epochs lr decays once')  # 500 
